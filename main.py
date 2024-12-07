@@ -157,9 +157,11 @@ if __name__ == '__main__':
         Y.append(exact_delays[epoch])
         T.append(forecast_delays[epoch])
 
+    plt.figure(figsize=(10, 10))
     plt.plot(X, Y, label='Exact')
     plt.plot(X, T, label='Forecast')
     plt.xlabel('Epoch')
+    plt.xticks(rotation=45)
     plt.ylabel('IO delay [m]')
     plt.grid()
     plt.show()
