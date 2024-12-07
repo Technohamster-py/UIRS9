@@ -113,16 +113,13 @@ def klobuchar(fi, lamb, elev, azim, tow, alpha, beta):
     return c * dIon
 
 
-if __name__ == '__main__':
-    LAT = LATITUDE[:-1] if LATITUDE[-1] == 'N' else '-' + LATITUDE[:-1]
-    LONG = LONGITUDE[:-1] if LONGITUDE[-1] == 'E' else '-' + LONGITUDE[:-1]
-    lat_north, lat_south, lon_west, lon_east = find_cords('data/igsg0010.18i', float(LAT), float(LONG))
+def io_delays_by_epoch(filename, LAT, LONG):
+    lat_north, lat_south, lon_west, lon_east = find_cords(filename, float(LAT), float(LONG))
 
-    delays_on_NW = find_TEC_delays('data/igsg0010.18i', lat_north, lon_west)
-    delays_on_NE = find_TEC_delays('data/igsg0010.18i', lat_north, lon_east)
-    delays_on_SW = find_TEC_delays('data/igsg0010.18i', lat_south, lon_west)
-    delays_on_SE = find_TEC_delays('data/igsg0010.18i', lat_south, lon_east)
-
+    delays_on_NW = find_TEC_delays(filename, lat_north, lon_west)
+    delays_on_NE = find_TEC_delays(filename, lat_north, lon_east)
+    delays_on_SW = find_TEC_delays(filename, lat_south, lon_west)
+    delays_on_SE = find_TEC_delays(filename, lat_south, lon_east)
 
     io_delays = dict()
     for epoch in delays_on_NW.keys():
@@ -135,3 +132,10 @@ if __name__ == '__main__':
 
     for epoch in io_delays.keys():
         print(io_delays[epoch])
+
+
+if __name__ == '__main__':
+    LAT = LATITUDE[:-1] if LATITUDE[-1] == 'N' else '-' + LATITUDE[:-1]
+    LONG = LONGITUDE[:-1] if LONGITUDE[-1] == 'E' else '-' + LONGITUDE[:-1]
+
+    io_delays_by_epoch('data/igsg0010.18i', LAT, LONG)
