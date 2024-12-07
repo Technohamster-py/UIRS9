@@ -17,23 +17,48 @@ deg2rad  =  np.pi/180.
 
 
 def find_cords(filename: str, pos_lat: float, pos_long: float) -> tuple:
-    lat1 = 90
-    lon1 = 180
+    lat_north = 90.
+    lon_west = 180.
+    lat_south = -lat_north
+    lon_east = -lon_west
 
-    lat2 = -lat1
-    lon2 = -lon1
     with open(filename, 'r') as file:
         for line in file:
             if 'LAT/LON1/LON2/DLON/H' in line:
-                cords = tuple(float(match) for match in re.findall(r'-?\d+\.\d+', line.strip()))
-                #print(cords)
-                if cords[0] - pos_lat > 0 and lat1 > cords[0]: lat1 = cords[0]
-                if cords[1] - pos_long > 0 and lon1 > cords[1]: lon1 = cords[1]
+                LAT, LON1, LON2, DLON, H = tuple(float(match) for match in re.findall(r'-?\d+\.\d+', line.strip()))
+                if LAT - pos_lat > 0 and lat_north > LAT: lat_north = LAT
+                elif LAT - pos_lat < 0 and lat_south < LAT: lat_south = LAT
 
-                if cords[0] - pos_lat < 0 and lat2 < cords[0]: lat2 = cords[0]
-                if cords[1] - pos_long < 0 and lon2 < cords[1]: lon2 = cords[1]
+        for long in range(int(LON1), int(LON2) + 1, int(DLON)):
+            if long - pos_long < 0 and np.fabs(pos_long - lon_west) > np.fabs(pos_long - long): lon_west = long
+            elif long - pos_long > 0 and np.fabs(lon_east - pos_long) > np.fabs(pos_long - long): lon_east = long
 
-        return lat1, lat2, lon1, lon2
+        return lat_north, lat_south, float(lon_west), float(lon_east)
+
+
+def find_TEC_delays(filename: str, latitude: float, longitude: float) -> dict:
+    TEC_delays = dict()
+
+    epoch = 0
+    line_number = 0
+    with open(filename, 'r') as file:
+        lines = file.readlines()
+
+
+    for line in lines:
+        if 'EPOCH OF CURRENT MAP' in line:
+            epoch = tuple(int(match) for match in re.findall(r'\d+', line.strip()))
+            epoch_str = f"{epoch[2]}.{epoch[1]}.{epoch[0]} - {epoch[3]}"
+        if 'START OF RMS MAP' in line: break
+
+        if 'LAT/LON1/LON2/DLON/H' in line:
+            LAT, LON1, LON2, DLON, H = tuple(float(match) for match in re.findall(r'-?\d+\.\d+', line.strip()))
+            if LAT == latitude:
+                delays_on_lat = [match for match in re.findall(r'\d+',''.join(lines[line_number + 1 : line_number + 6]))]
+                if epoch_str not in TEC_delays.keys(): TEC_delays[epoch_str] = int(delays_on_lat[int(np.fabs(longitude - LON1) / DLON)])
+        line_number += 1
+
+    return TEC_delays
 
 
 def io_delay(lat: float, long: float, delays: list, points: tuple) -> float:
@@ -41,16 +66,12 @@ def io_delay(lat: float, long: float, delays: list, points: tuple) -> float:
     lambda_pp = long
     tau_v = delays
 
-    phi_2, phi_1, lambda_1, lambda_2 = points
+    lambda_1, lambda_2, phi_1, phi_2 = points
 
     x_pp = (lambda_pp - lambda_1) / (lambda_2 - lambda_1)
     y_pp = (phi_pp - phi_1) / (phi_2 - phi_1)
 
-    W = list()
-    W[0] = x_pp * y_pp
-    W[1] = (1 - x_pp) * y_pp
-    W[2] = (1 - x_pp) * (1 - y_pp)
-    W[3] = x_pp * (1 - y_pp)
+    W = [x_pp * y_pp, (1 - x_pp) * y_pp, (1 - x_pp) * (1 - y_pp), x_pp * (1 - y_pp)]
 
     for k in range(3):
         tau_vpp = W[k] * tau_v[k]
@@ -95,8 +116,22 @@ def klobuchar(fi, lamb, elev, azim, tow, alpha, beta):
 if __name__ == '__main__':
     LAT = LATITUDE[:-1] if LATITUDE[-1] == 'N' else '-' + LATITUDE[:-1]
     LONG = LONGITUDE[:-1] if LONGITUDE[-1] == 'E' else '-' + LONGITUDE[:-1]
-    points = find_cords('data/igsg0010.18i', float(LAT), float(LONG))
-    print(points)
-    io_delay(LAT, LONG, [], points)
+    lat_north, lat_south, lon_west, lon_east = find_cords('data/igsg0010.18i', float(LAT), float(LONG))
+
+    delays_on_NW = find_TEC_delays('data/igsg0010.18i', lat_north, lon_west)
+    delays_on_NE = find_TEC_delays('data/igsg0010.18i', lat_north, lon_east)
+    delays_on_SW = find_TEC_delays('data/igsg0010.18i', lat_south, lon_west)
+    delays_on_SE = find_TEC_delays('data/igsg0010.18i', lat_south, lon_east)
 
 
+    io_delays = dict()
+    for epoch in delays_on_NW.keys():
+        delays = []
+        delays.append(delays_on_NE[epoch])
+        delays.append(delays_on_NW[epoch])
+        delays.append(delays_on_SW[epoch])
+        delays.append(delays_on_SE[epoch])
+        io_delays[epoch] = io_delay(float(LAT), float(LONG), delays, (lon_west, lon_east, lat_south, lat_north))
+
+    for epoch in io_delays.keys():
+        print(io_delays[epoch])
