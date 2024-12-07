@@ -16,18 +16,37 @@ semi2rad =  np.pi;
 deg2rad  =  np.pi/180.
 
 
-def find_cords(filename: str, pos_lat: float, pos_long: float) -> list:
+def find_cords(filename: str, pos_lat: float, pos_long: float) -> tuple:
+    lat1 = 90
+    lon1 = 180
+
+    lat2 = -lat1
+    lon2 = -lon1
     with open(filename, 'r') as file:
         for line in file:
             if 'LAT/LON1/LON2/DLON/H' in line:
-                lat, lon1, lon2, dlon, h = tuple(float(match) for match in re.findall(r'-?\d+\.\d+', line.strip()))
+                cords = tuple(float(match) for match in re.findall(r'-?\d+\.\d+', line.strip()))
+                #print(cords)
+                if cords[0] - pos_lat > 0 and lat1 > cords[0]: lat1 = cords[0]
+                if cords[1] - pos_long > 0 and lon1 > cords[1]: lon1 = cords[1]
 
-def io_delay(lat, long, delays):
+                if cords[0] - pos_lat < 0 and lat2 < cords[0]: lat2 = cords[0]
+                if cords[1] - pos_long < 0 and lon2 < cords[1]: lon2 = cords[1]
+
+        return lat1, lat2, lon1, lon2
+
+
+def io_delay(lat: float, long: float, delays: list, points: tuple) -> float:
     phi_pp = lat
     lambda_pp = long
     tau_v = delays
 
-    W = list
+    phi_2, phi_1, lambda_1, lambda_2 = points
+
+    x_pp = (lambda_pp - lambda_1) / (lambda_2 - lambda_1)
+    y_pp = (phi_pp - phi_1) / (phi_2 - phi_1)
+
+    W = list()
     W[0] = x_pp * y_pp
     W[1] = (1 - x_pp) * y_pp
     W[2] = (1 - x_pp) * (1 - y_pp)
@@ -37,6 +56,7 @@ def io_delay(lat, long, delays):
         tau_vpp = W[k] * tau_v[k]
 
     return tau_vpp
+
 
 def klobuchar(fi, lamb, elev, azim, tow, alpha, beta):
     a = azim * deg2rad
@@ -75,5 +95,8 @@ def klobuchar(fi, lamb, elev, azim, tow, alpha, beta):
 if __name__ == '__main__':
     LAT = LATITUDE[:-1] if LATITUDE[-1] == 'N' else '-' + LATITUDE[:-1]
     LONG = LONGITUDE[:-1] if LONGITUDE[-1] == 'E' else '-' + LONGITUDE[:-1]
-    find_cords('data/igsg0010.18i')
+    points = find_cords('data/igsg0010.18i', float(LAT), float(LONG))
+    print(points)
+    io_delay(LAT, LONG, [], points)
+
 
