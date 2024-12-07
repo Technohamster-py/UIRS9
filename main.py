@@ -11,6 +11,8 @@ LATITUDE = '55N'
 LONGITUDE = '83E'
 
 c = 2.99792458e8
+L1_freq = 1575.42e6
+k = 40.308193
 deg2semi =  1./180.
 semi2rad =  np.pi;
 deg2rad  =  np.pi/180.
@@ -76,10 +78,13 @@ def io_delay(lat: float, long: float, delays: list, points: tuple) -> float:
     for k in range(3):
         tau_vpp = W[k] * tau_v[k]
 
-    return tau_vpp
+    return TECU_to_meters(tau_vpp)
 
 
-def klobuchar(fi, lamb, elev, azim, tow, alpha, beta):
+def klobuchar(latitude, longitude, elev, azim, tow, alpha, beta):
+    fi = latitude
+    lamb = longitude
+
     a = azim * deg2rad
     e = elev * deg2semi
 
@@ -129,13 +134,15 @@ def io_delays_by_epoch(filename, LAT, LONG):
         delays.append(delays_on_SW[epoch])
         delays.append(delays_on_SE[epoch])
         io_delays[epoch] = io_delay(float(LAT), float(LONG), delays, (lon_west, lon_east, lat_south, lat_north))
+    return io_delays
 
-    for epoch in io_delays.keys():
-        print(io_delays[epoch])
 
+def TECU_to_meters(TECU):
+    return -k * (TECU / L1_freq ** 2)
 
 if __name__ == '__main__':
     LAT = LATITUDE[:-1] if LATITUDE[-1] == 'N' else '-' + LATITUDE[:-1]
     LONG = LONGITUDE[:-1] if LONGITUDE[-1] == 'E' else '-' + LONGITUDE[:-1]
 
-    io_delays_by_epoch('data/igsg0010.18i', LAT, LONG)
+    print(io_delays_by_epoch('data/igsg0010.18i', LAT, LONG))
+    print(io_delays_by_epoch('data/igrg0010.18i', LAT, LONG))
