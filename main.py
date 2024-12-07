@@ -5,6 +5,7 @@ Created on Nov 10 2024
 
 import re
 import numpy as np
+import matplotlib.pyplot as plt
 
 # Config
 LATITUDE = '55N'
@@ -144,5 +145,21 @@ if __name__ == '__main__':
     LAT = LATITUDE[:-1] if LATITUDE[-1] == 'N' else '-' + LATITUDE[:-1]
     LONG = LONGITUDE[:-1] if LONGITUDE[-1] == 'E' else '-' + LONGITUDE[:-1]
 
-    print(io_delays_by_epoch('data/igsg0010.18i', LAT, LONG))
-    print(io_delays_by_epoch('data/igrg0010.18i', LAT, LONG))
+    exact_delays = io_delays_by_epoch('data/igsg0010.18i', LAT, LONG)
+    forecast_delays = io_delays_by_epoch('data/igrg0010.18i', LAT, LONG)
+
+    X = []
+    Y = []
+    T = []
+
+    for epoch in exact_delays.keys():
+        X.append(epoch)
+        Y.append(exact_delays[epoch])
+        T.append(forecast_delays[epoch])
+
+    plt.plot(X, Y, label='Exact')
+    plt.plot(X, T, label='Forecast')
+    plt.xlabel('Epoch')
+    plt.ylabel('IO delay [m]')
+    plt.grid()
+    plt.show()
