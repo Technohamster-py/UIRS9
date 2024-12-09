@@ -23,9 +23,17 @@ k = 40.308193
 deg2semi = 1./180.
 semi2rad = np.pi;
 deg2rad = np.pi/180.
+SECONDS_IN_WEEK = 604800
 
 
 def find_cords(filename: str, pos_lat: float, pos_long: float) -> tuple:
+    '''
+    finding nearest IGP position based on latitude and longitude of IPP
+    :param filename: file name of TEC delay file
+    :param pos_lat: latitude of IPP
+    :param pos_long: longitude of IPP
+    :return:
+    '''
     lat_north = 90.
     lon_west = 180.
     lat_south = -lat_north
@@ -46,6 +54,13 @@ def find_cords(filename: str, pos_lat: float, pos_long: float) -> tuple:
 
 
 def find_TEC_delays(filename: str, latitude: float, longitude: float) -> dict:
+    """
+    collecting all the TEC delays in time period
+    :param filename: filename of TEC delays file
+    :param latitude: latitude of IGP
+    :param longitude: longitude of IGP
+    :return: dictionary of TEC delays in format {epoch: TEC delay value}
+    """
     TEC_delays = dict()
 
     epoch = 0
@@ -70,6 +85,14 @@ def find_TEC_delays(filename: str, latitude: float, longitude: float) -> dict:
 
 
 def io_delay(lat: float, long: float, delays: list, points: tuple) -> float:
+    """
+    Calculation of delay interpolation (algorithm in И2.1 of the SDCM ICD)
+    :param lat: Latitude of IPP
+    :param long: Longitude of IPP
+    :param delays: An array containing delays in the following order: [Delay on NE, Delay on NW, Delay on SW, Delay on SE]
+    :param points: Contains longitudes to the west and east of the IPP and Latitudes to the north and south of the IPP
+    :return: IO delay (in meters) at IPP
+    """
     phi_pp = lat
     lambda_pp = long
     tau_v = delays
@@ -131,6 +154,13 @@ def klobuchar(latitude, longitude, elev, azim, tow, alpha, beta):
 
 
 def io_delays_by_epoch(filename, LAT, LONG) -> dict:
+    """
+    calculating interpolated IO delay by epoch at IPP
+    :param filename: filename of TEC delays file
+    :param LAT: latitude of IPP
+    :param LONG: longitude of IPP
+    :return: dictionary of delays in format {epoch: IO delay value}
+    """
     lat_north, lat_south, lon_west, lon_east = find_cords(filename, float(LAT), float(LONG))
 
     delays_on_NW = find_TEC_delays(filename, lat_north, lon_west)
@@ -156,14 +186,9 @@ def TECU_to_meters(TECU):
 def time_of_week(date_time: tuple) -> tuple:
     '''
     This function converts calendar date/time to GPS week/time.
-
-
     :param date_time: tuple in the format (year, month, day, hours, minutes, seconds)
     :return: gps_week - gps_seconds - integer seconds elapsed in gps_week.
     '''
-
-    SECONDS_IN_WEEK = 604800
-
     year, month, day, hours, mins, sec = date_time
 
     if month <= 2:
