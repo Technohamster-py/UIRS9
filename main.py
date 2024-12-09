@@ -12,6 +12,9 @@ import matplotlib.pyplot as plt
 LATITUDE = '55N'
 LONGITUDE = '83E'
 
+ELEVATION_ANGLE = 90
+AZIMUTH = 0
+
 c = 2.99792458e8
 L1_freq = 1575.42e6
 k = 40.308193
@@ -52,14 +55,13 @@ def find_TEC_delays(filename: str, latitude: float, longitude: float) -> dict:
     for line in lines:
         if 'EPOCH OF CURRENT MAP' in line:
             epoch = tuple(int(match) for match in re.findall(r'\d+', line.strip()))
-            epoch_str = f"{epoch[2]}.{epoch[1]}.{epoch[0]} - {epoch[3]}"
         if 'START OF RMS MAP' in line: break
 
         if 'LAT/LON1/LON2/DLON/H' in line:
             LAT, LON1, LON2, DLON, H = tuple(float(match) for match in re.findall(r'-?\d+\.\d+', line.strip()))
             if LAT == latitude:
                 delays_on_lat = [match for match in re.findall(r'\d+',''.join(lines[line_number + 1 : line_number + 6]))]
-                if epoch_str not in TEC_delays.keys(): TEC_delays[epoch_str] = int(delays_on_lat[int(np.fabs(longitude - LON1) / DLON)])
+                if epoch not in TEC_delays.keys(): TEC_delays[epoch] = int(delays_on_lat[int(np.fabs(longitude - LON1) / DLON)])
         line_number += 1
 
     return TEC_delays
@@ -84,8 +86,8 @@ def io_delay(lat: float, long: float, delays: list, points: tuple) -> float:
 
 
 def klobuchar(latitude, longitude, elev, azim, tow, alpha, beta):
-    fi = latitude
-    lamb = longitude
+    fi = float(latitude)
+    lamb = float(longitude)
 
     a = azim * deg2rad
     e = elev * deg2semi
@@ -148,13 +150,13 @@ def time_of_week(date_time: tuple) -> tuple:
     This function converts calendar date/time to GPS week/time.
 
 
-    :param date_time: tuple in the format (day, month, year, hours, minutes, seconds)
-    :return: gps_week - integer GPS week (does not take "rollover" into account), gps_seconds - integer seconds elapsed in gps_week.
+    :param date_time: tuple in the format (year, month, day, hours, minutes, seconds)
+    :return: gps_week - gps_seconds - integer seconds elapsed in gps_week.
     '''
 
     SECONDS_IN_WEEK = 604800
 
-    day, month, year, hours, mins, sec = date_time
+    year, month, day, hours, mins, sec = date_time
 
     if month <= 2:
         y = year - 1
@@ -168,7 +170,18 @@ def time_of_week(date_time: tuple) -> tuple:
     gps_week = floor((JD - 2444244.5) / 7)
     gps_seconds = round(((((JD - 2444244.5) / 7) - gps_week) * SECONDS_IN_WEEK) / 0.5) * 0.5
 
-    return gps_week, gps_seconds
+    return gps_seconds
+
+
+def get_ion_corrections(filename: str):
+    with open(filename, 'r') as file:
+        for line in file:
+            if "ION ALPHA" in line:
+                ion_alpha = tuple(match for match in re.findall(r'-?\d+\.\d+D-\d+', line.strip()))
+            elif "ION BETA" in line:
+                ion_beta = tuple(match for match in re.findall(r'-?\d+\.\d+D\+\d+', line.strip()))
+    return ion_alpha, ion_beta
+
 
 if __name__ == '__main__':
     LAT = LATITUDE[:-1] if LATITUDE[-1] == 'N' else '-' + LATITUDE[:-1]
@@ -177,20 +190,29 @@ if __name__ == '__main__':
     exact_delays = io_delays_by_epoch('data/igsg0010.18i', LAT, LONG)
     forecast_delays = io_delays_by_epoch('data/igrg0010.18i', LAT, LONG)
 
+    ion_alpha, ion_beta = get_ion_corrections('data/brdc0010.18n')
+
     X = []
-    Y = []
-    T = []
+    exact_plot = []
+    forecast_plot = []
+    klobuchar_plot = []
 
     for epoch in exact_delays.keys():
-        X.append(epoch)
-        Y.append(exact_delays[epoch])
-        T.append(forecast_delays[epoch])
+        epoch_str = f"{epoch[2]}.{epoch[1]}.{epoch[0]} - {epoch[3]}"
+        X.append(epoch_str)
+        exact_plot.append(exact_delays[epoch])
+        forecast_plot.append(forecast_delays[epoch])
+
+        tow = time_of_week(epoch)
+        klobuchar_plot.append(klobuchar(LAT, LONG, ELEVATION_ANGLE, AZIMUTH, tow, ion_alpha, ion_beta))
 
     plt.figure(figsize=(10, 10))
-    plt.plot(X, Y, label='Exact')
-    plt.plot(X, T, label='Forecast')
+    plt.plot(X, exact_plot, label='Exact')
+    plt.plot(X, forecast_plot, label='Forecast')
+    plt.plot(X, klobuchar_plot, label="Klobuchar model")
     plt.xlabel('Epoch')
     plt.xticks(rotation=45)
     plt.ylabel('IO delay [m]')
+    plt.legend(loc="upper left")
     plt.grid()
     plt.show()
