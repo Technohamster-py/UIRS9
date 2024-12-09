@@ -15,12 +15,14 @@ LONGITUDE = '83E'
 ELEVATION_ANGLE = 90
 AZIMUTH = 0
 
+
+# Constants
 c = 2.99792458e8
 L1_freq = 1575.42e6
 k = 40.308193
-deg2semi =  1./180.
-semi2rad =  np.pi;
-deg2rad  =  np.pi/180.
+deg2semi = 1./180.
+semi2rad = np.pi;
+deg2rad = np.pi/180.
 
 
 def find_cords(filename: str, pos_lat: float, pos_long: float) -> tuple:
@@ -105,6 +107,7 @@ def klobuchar(latitude, longitude, elev, azim, tow, alpha, beta):
     t = 4.32e4 * long_i + tow
     t = t % 86400.
     if t > 86400.: t = t - 86400.
+    if t < 0: t = t + 86400
 
     sF = 1. + 16. * (0.53-e)**3
 
@@ -176,10 +179,11 @@ def time_of_week(date_time: tuple) -> tuple:
 def get_ion_corrections(filename: str):
     with open(filename, 'r') as file:
         for line in file:
+            line = line.replace('D', 'e')
             if "ION ALPHA" in line:
-                ion_alpha = tuple(match for match in re.findall(r'-?\d+\.\d+D-\d+', line.strip()))
+                ion_alpha = tuple(float(match) for match in re.findall(r'-?\d+\.\d+e-\d+', line.strip()))
             elif "ION BETA" in line:
-                ion_beta = tuple(match for match in re.findall(r'-?\d+\.\d+D\+\d+', line.strip()))
+                ion_beta = tuple(float(match) for match in re.findall(r'-?\d+\.\d+e\+\d+', line.strip()))
     return ion_alpha, ion_beta
 
 
