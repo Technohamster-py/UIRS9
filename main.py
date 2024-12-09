@@ -5,6 +5,7 @@ Created on Nov 10 2024
 
 import re
 import numpy as np
+from math import floor
 import matplotlib.pyplot as plt
 
 # Config
@@ -119,7 +120,7 @@ def klobuchar(latitude, longitude, elev, azim, tow, alpha, beta):
     return c * dIon
 
 
-def io_delays_by_epoch(filename, LAT, LONG):
+def io_delays_by_epoch(filename, LAT, LONG) -> dict:
     lat_north, lat_south, lon_west, lon_east = find_cords(filename, float(LAT), float(LONG))
 
     delays_on_NW = find_TEC_delays(filename, lat_north, lon_west)
@@ -140,6 +141,34 @@ def io_delays_by_epoch(filename, LAT, LONG):
 
 def TECU_to_meters(TECU):
     return -k * (TECU / L1_freq ** 2)
+
+
+def time_of_week(date_time: tuple) -> tuple:
+    '''
+    This function converts calendar date/time to GPS week/time.
+
+
+    :param date_time: tuple in the format (day, month, year, hours, minutes, seconds)
+    :return: gps_week - integer GPS week (does not take "rollover" into account), gps_seconds - integer seconds elapsed in gps_week.
+    '''
+
+    SECONDS_IN_WEEK = 604800
+
+    day, month, year, hours, mins, sec = date_time
+
+    if month <= 2:
+        y = year - 1
+        m = month + 12
+    if month > 2:
+        y = year
+        m = month
+
+    JD = floor(365.25 * y) + floor(30.6001 * (m + 1)) + day + ((hours + mins / 60 + sec / 3600) / 24) + 1720981.5
+
+    gps_week = floor((JD - 2444244.5) / 7)
+    gps_seconds = round(((((JD - 2444244.5) / 7) - gps_week) * SECONDS_IN_WEEK) / 0.5) * 0.5
+
+    return gps_week, gps_seconds
 
 if __name__ == '__main__':
     LAT = LATITUDE[:-1] if LATITUDE[-1] == 'N' else '-' + LATITUDE[:-1]
