@@ -79,10 +79,15 @@ def io_delay(lat: float, long: float, delays: list, points: tuple) -> float:
     x_pp = (lambda_pp - lambda_1) / (lambda_2 - lambda_1)
     y_pp = (phi_pp - phi_1) / (phi_2 - phi_1)
 
-    W = [x_pp * y_pp, (1 - x_pp) * y_pp, (1 - x_pp) * (1 - y_pp), x_pp * (1 - y_pp)]
+    W = [x_pp * y_pp,
+         (1 - x_pp) * y_pp,
+         (1 - x_pp) * (1 - y_pp),
+         x_pp * (1 - y_pp)
+         ]
 
+    tau_vpp = 0
     for k in range(3):
-        tau_vpp = W[k] * tau_v[k]
+        tau_vpp = tau_vpp + W[k] * tau_v[k]
 
     return TECU_to_meters(tau_vpp)
 
@@ -145,7 +150,7 @@ def io_delays_by_epoch(filename, LAT, LONG) -> dict:
 
 
 def TECU_to_meters(TECU):
-    return -k * (TECU / L1_freq ** 2)
+    return k * (TECU / L1_freq ** 2) * 10e16
 
 
 def time_of_week(date_time: tuple) -> tuple:
