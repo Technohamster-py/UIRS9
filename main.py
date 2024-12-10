@@ -1,8 +1,3 @@
-'''
-Created on Nov 10 2024
-@author: Khomchenko A.A.
-'''
-
 import re
 import numpy as np
 from math import floor
