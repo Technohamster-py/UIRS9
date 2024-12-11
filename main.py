@@ -241,6 +241,7 @@ if __name__ == '__main__':
     klobuchar_plot = []
     table_header = ["Epoch", "Exact delay", "Forecast delay", "Klobuchar model"]
     table = PrettyTable(table_header)
+    table.title = "Ion Delays"
 
 
     for epoch in exact_delays.keys():
