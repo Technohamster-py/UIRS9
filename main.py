@@ -13,12 +13,11 @@ AZIMUTH = 0
 
 # Constants
 c = 2.99792458e8
-L1_freq = 1575.42e6
-k = 40.308193
 deg2semi = 1./180.
 semi2rad = np.pi;
 deg2rad = np.pi/180.
 SECONDS_IN_WEEK = 604800
+TECU2meters = (40.308193 / 1575.42e6 ** 2) * 1e16
 
 
 def find_cords(filename: str, pos_lat: float, pos_long: float) -> tuple:
@@ -107,7 +106,7 @@ def io_delay(lat: float, long: float, delays: list, points: tuple) -> float:
     for k in range(3):
         tau_vpp = tau_vpp + W[k] * tau_v[k]
 
-    return TECU_to_meters(tau_vpp)
+    return tau_vpp * TECU2meters
 
 
 def klobuchar(latitude, longitude, elev, azim, tow, alpha, beta):
@@ -172,10 +171,6 @@ def io_delays_by_epoch(filename, LAT, LONG) -> dict:
         delays.append(delays_on_SE[epoch])
         io_delays[epoch] = io_delay(float(LAT), float(LONG), delays, (lon_west, lon_east, lat_south, lat_north))
     return io_delays
-
-
-def TECU_to_meters(TECU):
-    return k * (TECU / L1_freq ** 2) * 10e16
 
 
 def time_of_week(date_time: tuple) -> tuple:
