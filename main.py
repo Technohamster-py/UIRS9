@@ -105,7 +105,7 @@ def io_delay(lat: float, long: float, delays: list, points: tuple) -> float:
 
     tau_vpp = 0
     for k in range(3):
-        tau_vpp = tau_vpp + W[k] * tau_v[k]
+        tau_vpp = tau_vpp + W[k] * tau_v[k] / 10.
 
     return tau_vpp * TECU2meters
 
