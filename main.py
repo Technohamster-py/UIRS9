@@ -2,11 +2,12 @@ import re
 import numpy as np
 from math import floor
 import matplotlib.pyplot as plt
+from prettytable import PrettyTable
 
 # Config
-CITY_NAME = "Krasnoyarsk"
-LATITUDE = '69.3N'
-LONGITUDE = '88.15E'
+CITY_NAME = "Novosibirsk"
+LATITUDE = '55N'
+LONGITUDE = '83E'
 
 ELEVATION_ANGLE = 90
 AZIMUTH = 0
@@ -238,15 +239,24 @@ if __name__ == '__main__':
     exact_plot = []
     forecast_plot = []
     klobuchar_plot = []
+    table_header = ["Epoch", "Exact delay", "Forecast delay", "Klobuchar model"]
+    table = PrettyTable(table_header)
+
 
     for epoch in exact_delays.keys():
         epoch_str = f"{epoch[2]}.{epoch[1]}.{epoch[0]} - {epoch[3]}"
         X.append(epoch_str)
-        exact_plot.append(exact_delays[epoch])
-        forecast_plot.append(forecast_delays[epoch])
 
+        exaxt_delay = exact_delays[epoch]
+        forecast_delay = forecast_delays[epoch]
         tow = time_of_week(epoch)
-        klobuchar_plot.append(klobuchar(LAT, LONG, ELEVATION_ANGLE, AZIMUTH, tow, ion_alpha, ion_beta))
+        klobuchar_delay = klobuchar(LAT, LONG, ELEVATION_ANGLE, AZIMUTH, tow, ion_alpha, ion_beta)
+
+        exact_plot.append(exaxt_delay)
+        forecast_plot.append(forecast_delay)
+        klobuchar_plot.append(klobuchar_delay)
+
+        table.add_row([epoch_str, exaxt_delay, forecast_delay, klobuchar_delay])
 
     plt.figure(figsize=(10, 10))
     plt.plot(X, exact_plot, label='Exact')
@@ -259,3 +269,4 @@ if __name__ == '__main__':
     plt.grid()
     plt.suptitle(f"Ionospheric delays for {CITY_NAME} ({LATITUDE}; {LONGITUDE})")
     plt.show()
+    print(table)
