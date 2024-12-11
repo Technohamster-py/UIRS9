@@ -4,21 +4,21 @@ from math import floor
 import matplotlib.pyplot as plt
 
 # Config
-CITY_NAME = "Tomsk"
-LATITUDE = '56.5N'
-LONGITUDE = '84.9E'
+CITY_NAME = "Krasnoyarsk"
+LATITUDE = '69.3N'
+LONGITUDE = '88.15E'
 
 ELEVATION_ANGLE = 90
 AZIMUTH = 0
 
 
 # Constants
-c = 2.99792458e8
-deg2semi = 1./180.
-semi2rad = np.pi;
-deg2rad = np.pi/180.
-SECONDS_IN_WEEK = 604800
-TECU2meters = (40.308193 / 1575.42e6 ** 2) * 1e16
+c = 2.99792458e8                                    # Speed of light
+deg2semi = 1./180.                                  # Degrees to semisircles
+semi2rad = np.pi;                                   # Semisircles to radians
+deg2rad = np.pi/180.                                # Degrees to radians
+SECONDS_IN_WEEK = 604800                            # Seconds in one week
+TECU2meters = (40.308193 / 1575.42e6 ** 2) * 1e16   # TECU to meters
 
 
 def find_cords(filename: str, pos_lat: float, pos_long: float) -> tuple:
@@ -111,38 +111,50 @@ def io_delay(lat: float, long: float, delays: list, points: tuple) -> float:
 
 
 def klobuchar(latitude, longitude, elev, azim, tow, alpha, beta):
+    """
+     function for computing an Ionospheric range correction for the
+     GPS L1 frequency from the parameters broadcasted in the GPS Navigation Message.
+    :param latitude: Latitude of IPP
+    :param longitude: Longitude of IPP
+    :param elev: Elevation angle of satellite
+    :param azim: Geodetic azimuth of satellite
+    :param tow: time of week (seconds)
+    :param alpha: the coefficients of a cubic equation representing the amplitude of the vertical delay (4 coefficients - 8 bits each)
+    :param beta: The coefficients of a cubic equation representing the period of the model (4 coefficients - 8 bits each)
+    :return: Ionospheric slant range correction for the L1 frequency (meters)
+    """
     fi = float(latitude)
     lamb = float(longitude)
 
     a = azim * deg2rad
     e = elev * deg2semi
 
-    psi = 0.0137 / (e + 0.11) - 0.022
+    psi = 0.0137 / (e + 0.11) - 0.022                                               # Earth Centered angle
 
-    lat_i = fi * deg2semi + psi * np.cos(a)
+    lat_i = fi * deg2semi + psi * np.cos(a)                                         # Subionospheric lat
     if lat_i > 0.416: lat_i = 0.416
     elif lat_i < -0.416: lat_i = -0.416
 
-    long_i = lamb * deg2semi + (psi * np.sin(a) / np.cos(lat_i * semi2rad))
+    long_i = lamb * deg2semi + (psi * np.sin(a) / np.cos(lat_i * semi2rad))         # Subionospheric long
 
     lat_m = lat_i + 0.064 * np.cos((long_i - 1.617) * semi2rad)
 
-    t = 4.32e4 * long_i + tow
+    t = 4.32e4 * long_i + tow                                                       # Seconds of day
     t = t % 86400.
     if t > 86400.: t = t - 86400.
     if t < 0: t = t + 86400
 
-    sF = 1. + 16. * (0.53-e)**3
+    sF = 1. + 16. * (0.53-e)**3                                                     # Slant factor
 
-    PER = beta[0] + beta[1] * lat_m + beta[2] * lat_m ** 2 + beta[3] * lat_m ** 3
+    PER = beta[0] + beta[1] * lat_m + beta[2] * lat_m ** 2 + beta[3] * lat_m ** 3   # Period of model
     if PER < 72000: PER = 72000.
 
-    x = 2. * np.pi * (t - 50400.) / PER
+    x = 2. * np.pi * (t - 50400.) / PER                                             # Phase of the model (Max at 14.00 = 50400 sec local time)
 
     AMP = alpha[0] + alpha[1] * lat_m + alpha[2] * lat_m ** 2 + alpha[3] * lat_m ** 3
     if AMP < 0.: AMP = 0.
 
-    if np.fabs(x) > 1.57: dIon = sF * (5.e-9)
+    if np.fabs(x) > 1.57: dIon = sF * (5.e-9)                                       # Ionospheric corr.
     else: dIon = sF * (5.e-9 + AMP * (1. - x*x/2. + x*x*x*x/24.))
 
     return c * dIon
@@ -198,6 +210,11 @@ def time_of_week(date_time: tuple) -> tuple:
 
 
 def get_ion_corrections(filename: str):
+    """
+    Getting Ionospheric corrections from ephemeris file
+    :param filename: filename of ephemeris file
+    :return: ion alpha, ion beta
+    """
     with open(filename, 'r') as file:
         for line in file:
             line = line.replace('D', 'e')
