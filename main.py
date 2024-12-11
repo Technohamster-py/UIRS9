@@ -4,9 +4,9 @@ from math import floor
 import matplotlib.pyplot as plt
 
 # Config
-CITY_NAME = "Novosibirsk"
-LATITUDE = '69N'
-LONGITUDE = '88E'
+CITY_NAME = "Anatyr'"
+LATITUDE = '64.8N'
+LONGITUDE = '177.5E'
 
 ELEVATION_ANGLE = 90
 AZIMUTH = 0
@@ -30,9 +30,9 @@ def find_cords(filename: str, pos_lat: float, pos_long: float) -> tuple:
     :return:
     '''
     lat_north = 90.
-    lon_west = 180.
+    lon_west = -180.
     lat_south = -lat_north
-    lon_east = -lon_west
+    lon_east = lon_west
 
     with open(filename, 'r') as file:
         for line in file:
@@ -44,6 +44,7 @@ def find_cords(filename: str, pos_lat: float, pos_long: float) -> tuple:
         for long in range(int(LON1), int(LON2) + 1, int(DLON)):
             if long - pos_long < 0 and np.fabs(pos_long - lon_west) > np.fabs(pos_long - long): lon_west = long
             elif long - pos_long > 0 and np.fabs(lon_east - pos_long) > np.fabs(pos_long - long): lon_east = long
+            print(lon_west, lon_east)
 
         return lat_north, lat_south, float(lon_west), float(lon_east)
 
