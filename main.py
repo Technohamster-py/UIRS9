@@ -4,8 +4,9 @@ from math import floor
 import matplotlib.pyplot as plt
 
 # Config
-LATITUDE = '55N'
-LONGITUDE = '83E'
+CITY_NAME = "Novosibirsk"
+LATITUDE = '69N'
+LONGITUDE = '88E'
 
 ELEVATION_ANGLE = 90
 AZIMUTH = 0
@@ -239,4 +240,5 @@ if __name__ == '__main__':
     plt.ylabel('IO delay [m]')
     plt.legend(loc="upper left")
     plt.grid()
+    plt.suptitle(f"Ionospheric delays for {CITY_NAME} ({LATITUDE}; {LONGITUDE})")
     plt.show()
