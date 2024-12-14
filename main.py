@@ -47,7 +47,6 @@ def find_cords(filename: str, pos_lat: float, pos_long: float) -> tuple:
             elif long - pos_long > 0 and np.fabs(lon_east - pos_long) > np.fabs(pos_long - long): lon_east = long
 
 
-        print(lat_north, lat_south, lon_east, lon_west)
         return lat_north, lat_south, float(lon_west), float(lon_east)
 
 
@@ -173,7 +172,6 @@ def io_delays_by_epoch(filename, LAT, LONG) -> dict:
     """
     lat_north, lat_south, lon_west, lon_east = find_cords(filename, float(LAT), float(LONG))
 
-    print("delays on NW")
     delays_on_NW = find_TEC_delays(filename, lat_north, lon_west)
     delays_on_NE = find_TEC_delays(filename, lat_north, lon_east)
     delays_on_SW = find_TEC_delays(filename, lat_south, lon_west)
@@ -234,7 +232,6 @@ if __name__ == '__main__':
     LONG = LONGITUDE[:-1] if LONGITUDE[-1] == 'E' else '-' + LONGITUDE[:-1]
 
     exact_delays = io_delays_by_epoch('data/igsg0010.18i', LAT, LONG)
-    print("forecast delays")
     forecast_delays = io_delays_by_epoch('data/igrg0010.18i', LAT, LONG)
 
     ion_alpha, ion_beta = get_ion_corrections('data/brdc0010.18n')
