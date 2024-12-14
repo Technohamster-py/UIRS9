@@ -6,7 +6,7 @@ from prettytable import PrettyTable
 
 # Config
 CITY_NAME = "Novosibirsk"
-LATITUDE = '55N'
+LATITUDE = '55.5N'
 LONGITUDE = '83E'
 
 ELEVATION_ANGLE = 90
@@ -46,6 +46,8 @@ def find_cords(filename: str, pos_lat: float, pos_long: float) -> tuple:
             if long - pos_long < 0 and np.fabs(pos_long - lon_west) > np.fabs(pos_long - long): lon_west = long
             elif long - pos_long > 0 and np.fabs(lon_east - pos_long) > np.fabs(pos_long - long): lon_east = long
 
+
+        print(lat_north, lat_south, lon_east, lon_west)
         return lat_north, lat_south, float(lon_west), float(lon_east)
 
 
@@ -105,7 +107,7 @@ def io_delay(lat: float, long: float, delays: list, points: tuple) -> float:
          ]
 
     tau_vpp = 0
-    for k in range(3):
+    for k in range(4):
         tau_vpp = tau_vpp + W[k] * tau_v[k] / 10.
 
     return tau_vpp * TECU2meters
@@ -171,6 +173,7 @@ def io_delays_by_epoch(filename, LAT, LONG) -> dict:
     """
     lat_north, lat_south, lon_west, lon_east = find_cords(filename, float(LAT), float(LONG))
 
+    print("delays on NW")
     delays_on_NW = find_TEC_delays(filename, lat_north, lon_west)
     delays_on_NE = find_TEC_delays(filename, lat_north, lon_east)
     delays_on_SW = find_TEC_delays(filename, lat_south, lon_west)
@@ -231,6 +234,7 @@ if __name__ == '__main__':
     LONG = LONGITUDE[:-1] if LONGITUDE[-1] == 'E' else '-' + LONGITUDE[:-1]
 
     exact_delays = io_delays_by_epoch('data/igsg0010.18i', LAT, LONG)
+    print("forecast delays")
     forecast_delays = io_delays_by_epoch('data/igrg0010.18i', LAT, LONG)
 
     ion_alpha, ion_beta = get_ion_corrections('data/brdc0010.18n')
@@ -271,3 +275,5 @@ if __name__ == '__main__':
     plt.suptitle(f"Ionospheric delays for {CITY_NAME} ({LATITUDE}; {LONGITUDE})")
     plt.show()
     print(table)
+
+    # прогнозный 0.6 - 0.7 в первую эпоху
