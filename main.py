@@ -272,5 +272,3 @@ if __name__ == '__main__':
     plt.suptitle(f"Ionospheric delays for {CITY_NAME} ({LATITUDE}; {LONGITUDE})")
     plt.show()
     print(table)
-
-    # прогнозный 0.6 - 0.7 в первую эпоху
